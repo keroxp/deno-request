@@ -3,7 +3,6 @@ import {BufReader, BufWriter} from "https://deno.land/x/io/bufio.ts";
 import {TextProtoReader} from "https://deno.land/x/textproto/mod.ts";
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 const CRLF = "\r\n";
 const kPortMap = {
@@ -13,16 +12,20 @@ const kPortMap = {
 
 export async function request(params: {
     url: string,
-    method: "GET" | "POST",
+    method: "GET" | "POST" | "HEAD" | "OPTION" | "DELETE" | "PUT" | "PATCH",
+    auth?: {
+        username: string,
+        password: string
+    }
     data?: string | { [key: string]: string },
-    headers: Headers
+    headers?: Headers
 }): Promise<{
     status: number,
-    statusText: string,
     headers: Headers,
     body: Buffer
 }> {
-    const {method, data, headers: reqHeaders} = params;
+    const {method, data, auth, headers} = params;
+    const reqHeaders = headers || new Headers();
     const url = new URL(params.url);
     let {host, pathname, protocol, port, search} = url;
     if (!port) {
@@ -50,6 +53,11 @@ export async function request(params: {
         if (!reqHeaders.has("host")) {
             reqHeaders.set("host", host);
         }
+        // Basic auth
+        if (auth) {
+            const base64 = btoa(`${auth.username}:${auth.password}`);
+            reqHeaders.set("Authorization", `Basic ${base64}`);
+        }
         for (const [key, value] of reqHeaders) {
             lines.push(`${key}: ${value}`)
         }
@@ -59,8 +67,8 @@ export async function request(params: {
         await writer.write(encoder.encode(msg));
         await writer.flush();
         // read status line
-        const [resLine, state] = await tpReader.readLine();
-        const [m, _, status, statusText] = resLine.match(/^([^ ]+)? (\d{3}) (.+?)$/);
+        const [statusLine, statusLineState] = await tpReader.readLine();
+        const [m, _, status] = statusLine.match(/^([^ ]+)? (\d{3}) (.+?)$/);
         // read header
         const [resHeaders] = await tpReader.readMIMEHeader();
         // read body
@@ -69,12 +77,9 @@ export async function request(params: {
         await reader.readFull(bodyBytes);
         return {
             status: parseInt(status),
-            statusText,
             headers: resHeaders,
             body: new Buffer(bodyBytes),
         };
-    } catch (e) {
-        console.error(e);
     } finally {
         conn.close();
     }
