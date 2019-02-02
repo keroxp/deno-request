@@ -37,3 +37,14 @@ const str = await readString(new StringReader(body))
 const json = JSON.parse(str)
 json["data"]; // wayway
 ```
+
+## Download file
+
+```main.ts
+import {request} from "https://denopkg.com/keroxp/deno-request/request.ts"
+import {open, copy} from "deno"
+const {body} = await request("http://httpbin.org/get?deno=land");
+const f = await open("out.json")
+await copy(f, body)
+f.close()
+```
