@@ -1,5 +1,4 @@
-import { assert, runTests, test } from "https://deno.land/x/testing/mod.ts";
-import { assertEqual } from "https://deno.land/x/pretty_assert/mod.ts";
+import {assert, assertEqual, runTests, test} from "./deps.ts";
 import { request } from "./request.ts";
 import { readString, StringReader } from "./strings.ts";
 

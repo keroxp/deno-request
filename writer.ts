@@ -1,5 +1,5 @@
 import { read, Reader, Writer } from "deno";
-import { BufReader, BufWriter } from "http://deno.land/x/net/bufio.ts";
+import { BufReader, BufWriter } from "./deps.ts";
 
 const encoder = new TextEncoder();
 
