@@ -1,7 +1,21 @@
-import {assert, assertEqual, runTests, test} from "./deps.ts";
+import {
+  assert,
+  assertEquals
+} from "https://deno.land/std@v0.3.1/testing/asserts.ts";
+import {
+  runIfMain,
+  runTests,
+  test
+} from "https://deno.land/std@v0.3.1/testing/mod.ts";
+import { StringReader } from "https://deno.land/std@v0.3.1/io/readers.ts";
 import { request } from "./request.ts";
-import { readString, StringReader } from "./strings.ts";
-
+import Buffer = Deno.Buffer;
+import Reader = Deno.Reader;
+async function readString(r: Reader) {
+  const buf = new Buffer();
+  await Deno.copy(buf, r);
+  return buf.toString();
+}
 test(async function testRequestGet() {
   const { status, headers, body } = await request({
     url: "http://httpbin.org/get?deno=land",
@@ -10,12 +24,12 @@ test(async function testRequestGet() {
       "Content-Type": "application/json"
     })
   });
-  assertEqual(status, 200);
-  assertEqual(headers.has("content-type"), true);
+  assertEquals(status, 200);
+  assertEquals(headers.has("content-type"), true);
   assert(headers.get("content-type").match(/application\/json/) !== null);
   const str = await readString(body);
   const json = JSON.parse(str);
-  assertEqual(json["args"]["deno"], "land");
+  assertEquals(json["args"]["deno"], "land");
 });
 
 test(async function testRequestPost() {
@@ -25,12 +39,12 @@ test(async function testRequestPost() {
     body: new StringReader("wayway"),
     bodySize: 6
   });
-  assertEqual(status, 200);
-  assertEqual(headers.has("content-type"), true);
+  assertEquals(status, 200);
+  assertEquals(headers.has("content-type"), true);
   assert(headers.get("content-type").match(/application\/json/) !== null);
   const str = await readString(body);
   const json = JSON.parse(str);
-  assertEqual(json["data"], "wayway");
+  assertEquals(json["data"], "wayway");
 });
 
 test(async function testRequestPostChunked() {
@@ -39,12 +53,12 @@ test(async function testRequestPostChunked() {
     method: "POST",
     body: new StringReader("waywaywayway")
   });
-  assertEqual(status, 200);
-  assertEqual(headers.has("content-type"), true);
+  assertEquals(status, 200);
+  assertEquals(headers.has("content-type"), true);
   assert(headers.get("content-type").match(/application\/json/) !== null);
   const str = await readString(body);
   const json = JSON.parse(str);
-  assertEqual(json["data"], "waywaywayway");
+  assertEquals(json["data"], "waywaywayway");
 });
 
 test(async function testBasicAuth() {
@@ -56,6 +70,6 @@ test(async function testBasicAuth() {
       password: "password"
     }
   });
-  assertEqual(status, 200);
+  assertEquals(status, 200);
 });
-runTests();
+runIfMain(import.meta);

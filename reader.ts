@@ -1,6 +1,8 @@
-import { Closer, Reader, ReadResult } from "deno";
-import { BufReader } from "./deps.ts";
-import { TextProtoReader } from "./deps.ts";
+import Reader = Deno.Reader;
+import Closer = Deno.Closer;
+import ReadResult = Deno.ReadResult;
+import { BufReader } from "https://deno.land/std@v0.3.1/io/bufio.ts";
+import { TextProtoReader } from "https://deno.land/std@v0.3.1/textproto/mod.ts";
 
 export type HttpResponse = {
   status: number;
