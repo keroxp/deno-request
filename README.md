@@ -1,4 +1,5 @@
 # deno-request
+![https://travis-ci.org/keroxp/deno-request.svg?branch=master](https://travis-ci.org/keroxp/deno-request.svg?branch=master)
 
 An experimental implementation of http request client based on `dial` for deno
 
