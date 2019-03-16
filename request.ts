@@ -1,7 +1,12 @@
+// Copyright 2019 Yusuke Sakurai. All rights reserved. MIT license.
 import Buffer = Deno.Buffer;
 
 const { dial } = Deno;
-import { BufReader, BufWriter } from "https://deno.land/std@v0.3.1/io/bufio.ts";
+import {
+  BufReader,
+  BufState,
+  BufWriter
+} from "https://deno.land/std@v0.3.1/io/bufio.ts";
 import { TextProtoReader } from "https://deno.land/std@v0.3.1/textproto/mod.ts";
 import {
   BodyReader,
@@ -10,6 +15,7 @@ import {
 import Reader = Deno.Reader;
 import Writer = Deno.Writer;
 import Conn = Deno.Conn;
+import { assert } from "https://deno.land/std@v0.3.1/testing/asserts.ts";
 
 const kPortMap = {
   "http:": "80",
@@ -65,7 +71,7 @@ export async function request(
 }
 
 async function writeHttpRequest(w: Writer, opts: HttpRequest) {
-  const writer = new BufWriter(w);
+  const writer = w instanceof BufWriter ? w : new BufWriter(w);
   const { method, basicAuth, body } = opts;
   const url = new URL(opts.url);
   let { headers } = opts;
@@ -101,7 +107,10 @@ async function writeHttpRequest(w: Writer, opts: HttpRequest) {
   lines.push("\r\n");
   const headerText = lines.join("\r\n");
   await writer.write(encoder.encode(headerText));
-  await writer.flush();
+  const state = await writer.flush();
+  if (state) {
+    throw state instanceof Error ? state : new Error(state);
+  }
   if (body) {
     const reader = body instanceof Uint8Array ? new Buffer(body) : body;
     const buf = new Uint8Array(1024);
@@ -138,13 +147,28 @@ async function readHttpResponse(
   headers: Headers;
   body: Reader;
 }> {
-  const reader = new BufReader(r);
+  const reader = r instanceof BufReader ? r : new BufReader(r);
   const tpReader = new TextProtoReader(reader);
+  let resLine: string;
+  let headers: Headers;
+  let state: BufState;
   // read status line
-  const [resLine, state] = await tpReader.readLine();
-  const [m, _, status, statusText] = resLine.match(/^([^ ]+)? (\d{3}) (.+?)$/);
+  [resLine, state] = await tpReader.readLine();
+  if (state) {
+    throw state instanceof Error ? state : new Error(state);
+  }
+  const [_, version, status, statusText] = resLine.match(
+    /^([^ ]+)? (\d{3}) (.+?)$/
+  );
+  assert(
+    version !== void 0 && status !== void 0 && statusText !== void 0,
+    `unexpected response line: ${resLine}`
+  );
   // read header
-  const [headers] = await tpReader.readMIMEHeader();
+  [headers, state] = await tpReader.readMIMEHeader();
+  if (state) {
+    throw state instanceof Error ? state : new Error(state);
+  }
   // read body
   const resContentLength = headers.get("content-length");
   const contentLength = parseInt(resContentLength);
