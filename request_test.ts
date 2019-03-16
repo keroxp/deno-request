@@ -1,16 +1,11 @@
-import {
-  assert,
-  assertEquals
-} from "https://deno.land/std@v0.3.1/testing/asserts.ts";
-import {
-  runIfMain,
-  runTests,
-  test
-} from "https://deno.land/std@v0.3.1/testing/mod.ts";
-import { StringReader } from "https://deno.land/std@v0.3.1/io/readers.ts";
-import { request } from "./request.ts";
+import {assert, assertEquals} from "https://deno.land/std@v0.3.1/testing/asserts.ts";
+import {runIfMain, test} from "https://deno.land/std@v0.3.1/testing/mod.ts";
+import {StringReader} from "https://deno.land/std@v0.3.1/io/readers.ts";
+import {request} from "./request.ts";
+import {encode} from "https://deno.land/std@v0.3.1/strings/strings.ts";
 import Buffer = Deno.Buffer;
 import Reader = Deno.Reader;
+
 async function readString(r: Reader) {
   const buf = new Buffer();
   await Deno.copy(buf, r);
@@ -36,8 +31,7 @@ test(async function testRequestPost() {
   const { status, headers, body } = await request({
     url: "http://httpbin.org/post",
     method: "POST",
-    body: new StringReader("wayway"),
-    bodySize: 6
+    body: encode("wayway"),
   });
   assertEquals(status, 200);
   assertEquals(headers.has("content-type"), true);
